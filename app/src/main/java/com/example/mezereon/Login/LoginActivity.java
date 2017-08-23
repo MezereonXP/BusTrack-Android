@@ -1,5 +1,6 @@
 package com.example.mezereon.Login;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.ActivityOptions;
@@ -7,6 +8,7 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -100,6 +102,7 @@ public class LoginActivity extends AppCompatActivity {
         final IsRegistService isRegistService = retrofit.create(IsRegistService.class);
         hp = this.getSharedPreferences("USERINFO", MODE_PRIVATE);
         editor = hp.edit();
+        getPermission();
         ButterKnife.bind(this);
         setTheStateBarAndInitEM();
         judgeTheLoginState();
@@ -116,6 +119,27 @@ public class LoginActivity extends AppCompatActivity {
         });
 
 
+    }
+
+    private void getPermission() {
+        //申请定位，网络，读取手机状态权限
+        PackageManager pm = getPackageManager();
+        boolean permission = (PackageManager.PERMISSION_GRANTED ==
+                pm.checkPermission("android.permission.READ_PHONE_STATE", "packageName"));
+        if (permission) {
+        }else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if(getBaseContext().checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=PackageManager.PERMISSION_GRANTED
+                        ||getBaseContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) !=PackageManager.PERMISSION_GRANTED
+                        ||getBaseContext().checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) !=PackageManager.PERMISSION_GRANTED) {
+
+                    // 申请一个（或多个）权限，并提供用于回调返回的获取码（用户定义)
+                    requestPermissions( new String[]{
+                            Manifest.permission.READ_PHONE_STATE ,Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.READ_EXTERNAL_STORAGE},100);
+
+                }
+            }
+        }
     }
 
     private void doBeforeLogin(IsRegistService isRegistService) {

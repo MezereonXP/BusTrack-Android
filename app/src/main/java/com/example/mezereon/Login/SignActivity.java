@@ -88,6 +88,9 @@ public class SignActivity extends AppCompatActivity {
     @Inject
     Retrofit retrofit;
 
+    boolean phoneIsRight = false;
+    boolean nameIsRight = false;
+
     public interface RegistService {
         @GET("addUser.php")
         Observable<Void> regist(@Query("phone") String phone,
@@ -118,17 +121,15 @@ public class SignActivity extends AppCompatActivity {
         RxView.clicks(btn_sign).subscribe(new Action1<Void>() {
             @Override
             public void call(Void aVoid) {
-                boolean phoneIsRight = false;
-                boolean nameIsRight = false;
-                checkTheName(nameIsRight);
-                checkThePhone(nameIsRight,phoneIsRight);
-                checkTheNumberAndRegist(phoneIsRight);
+                checkTheName();
+                checkThePhone();
+                checkTheNumberAndRegist();
             }
         });
 
     }
 
-    private void checkTheNumberAndRegist(boolean phoneIsRight) {
+    private void checkTheNumberAndRegist() {
         if(phoneIsRight && isWnumber(et_wnumber.getText().toString())){
             int buttonId = bt_group.getCheckedRadioButtonId();
             String sex = "";
@@ -147,7 +148,7 @@ public class SignActivity extends AppCompatActivity {
         }
     }
 
-    private void checkThePhone(boolean nameIsRight, boolean phoneIsRight) {
+    private void checkThePhone() {
         if(nameIsRight && isMobileNO(et_phone.getText().toString())){
             phoneIsRight = true;
         }else{
@@ -156,7 +157,7 @@ public class SignActivity extends AppCompatActivity {
         }
     }
 
-    private void checkTheName(boolean nameIsRight) {
+    private void checkTheName() {
         if(!et_id.getText().equals("") ){
             nameIsRight = true;
         }else{
@@ -173,19 +174,9 @@ public class SignActivity extends AppCompatActivity {
                                     .subscribe(new Action1<Void>() {
                                         @Override
                                         public void call(Void aVoid) {
-                                            createAccountForEM();
+                                            loginAndTurnToHome();
                                         }
                                     });
-    }
-
-    private void createAccountForEM() {
-        try {
-            EMClient.getInstance().createAccount(hp.getString("PHONE","none"),
-                    hp.getString("PHONE","none"));
-        } catch (HyphenateException e) {
-            e.printStackTrace();
-        }
-        loginAndTurnToHome();
     }
 
     private void loginAndTurnToHome() {
@@ -205,8 +196,6 @@ public class SignActivity extends AppCompatActivity {
 
                 @Override
                 public void onError(int code, String message) {
-                    Toast.makeText(SignActivity.this,
-                            "登陆服务器失败",Toast.LENGTH_SHORT).show();
                     Log.d("TAG", "登录服务器失败");
                 }
             });
@@ -218,7 +207,7 @@ public class SignActivity extends AppCompatActivity {
         isLogined = true;
         EMClient.getInstance().groupManager().loadAllGroups();
         EMClient.getInstance().chatManager().loadAllConversations();
-        Toast.makeText(SignActivity.this, "注册成功", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(SignActivity.this, "注册成功", Toast.LENGTH_SHORT).show();
         getWindow().setExitTransition(new Explode());
         intent.setClass(SignActivity.this, HomeActivity.class);
         startActivity(intent);
