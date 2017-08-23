@@ -97,6 +97,7 @@ public class LoginActivity extends AppCompatActivity {
                                     Log.d("progress",progress+"");
                                     //测试github用
                                     Log.d("progress",progress+"");
+                                    Log.d("progress",progress+"");
                                 }
 
                                 @Override
