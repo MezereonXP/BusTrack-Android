@@ -46,9 +46,19 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 
+import javax.inject.Inject;
+
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import retrofit2.Retrofit;
+import retrofit2.http.GET;
+import retrofit2.http.Query;
+import rx.Observable;
+import rx.Scheduler;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 
 public class LoginActivity extends AppCompatActivity {
@@ -66,6 +76,13 @@ public class LoginActivity extends AppCompatActivity {
     @Bind(R.id.textInputLayout2)
     TextInputLayout til2;
 
+    @Inject
+    Retrofit retrofit;
+
+    public interface IsRegistService {
+        @GET("isRegister.php")
+        Observable<String> isRegist(@Query("phone") String phone);
+    }
 
     final Intent intent=new Intent();
     private SharedPreferences hp;
@@ -131,7 +148,7 @@ public class LoginActivity extends AppCompatActivity {
         EMOptions options = new EMOptions();
         //初始化
         EMClient.getInstance().init(new MyApp(), options);
-
+        final IsRegistService isRegistService = retrofit.create(IsRegistService.class);
 
         if(!hp.getString("PHONE","none").equals("none")){
             intent.setClass(LoginActivity.this, HomeActivity.class);
@@ -148,14 +165,24 @@ public class LoginActivity extends AppCompatActivity {
                     editor.commit();
                     progressDialog.setMessage("登陆中");
                     progressDialog.show();
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Log.d("tag","here!");
-                            isRegisted(et_id.getText().toString());
-                        }
+//                    new Thread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            isRegisted(et_id.getText().toString());
+//                        }
+//
+//                    }).start();
+                    Subscription subscription = isRegistService.isRegist(et_id.getText().toString())
+                            .subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe(new Action1<String>() {
+                                @Override
+                                public void call(String result) {
+                                    isRegisted(result);
+                                }
+                            });
 
-                    }).start();
+
                 } else{
                     til.setErrorEnabled(true);
                     til.setError("请输入正确的手机号码");
@@ -190,12 +217,12 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void isRegisted(String s) {
-        String result="";
-        try {
-            result = API.isRegisterForHttpGet(s);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        String result = s;
+//        try {
+//            result = API.isRegisterForHttpGet(s);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
         if(result.equals("1")){
             handler.sendEmptyMessage(MESSAGETYPE_01);
         }else{
