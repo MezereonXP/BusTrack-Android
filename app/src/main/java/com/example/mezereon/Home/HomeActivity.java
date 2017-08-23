@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -84,21 +85,23 @@ public class HomeActivity extends AppCompatActivity {
 
         }
         //申请定位，网络，读取手机状态权限
-        /*PackageManager pm = getPackageManager();
+        PackageManager pm = getPackageManager();
         boolean permission = (PackageManager.PERMISSION_GRANTED ==
                 pm.checkPermission("android.permission.READ_PHONE_STATE", "packageName"));
         if (permission) {
         }else {
-            if(getBaseContext().checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=PackageManager.PERMISSION_GRANTED
-                    ||getBaseContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) !=PackageManager.PERMISSION_GRANTED
-                    ||getBaseContext().checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) !=PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if(getBaseContext().checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=PackageManager.PERMISSION_GRANTED
+                        ||getBaseContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) !=PackageManager.PERMISSION_GRANTED
+                        ||getBaseContext().checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) !=PackageManager.PERMISSION_GRANTED) {
 
-                // 申请一个（或多个）权限，并提供用于回调返回的获取码（用户定义)
-                requestPermissions( new String[]{
-                        Manifest.permission.READ_PHONE_STATE ,Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.READ_EXTERNAL_STORAGE},BAIDU_READ_PHONE_STATE);
+                    // 申请一个（或多个）权限，并提供用于回调返回的获取码（用户定义)
+                    requestPermissions( new String[]{
+                            Manifest.permission.READ_PHONE_STATE ,Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.READ_EXTERNAL_STORAGE},BAIDU_READ_PHONE_STATE);
 
+                }
             }
-        }*/
+        }
         layout_tab.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {

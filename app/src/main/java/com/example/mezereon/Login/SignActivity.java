@@ -23,6 +23,7 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
 
+import com.example.mezereon.Component.DaggerAppComponent;
 import com.example.mezereon.Home.HomeActivity;
 import com.example.mezereon.MyApp;
 import com.example.mezereon.R;
@@ -43,9 +44,20 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 
+import javax.inject.Inject;
+
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import retrofit2.Retrofit;
+import retrofit2.http.GET;
+import retrofit2.http.Query;
+import rx.Observable;
+import rx.Scheduler;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action;
 import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by 嚴 on 2017/8/17.
@@ -73,6 +85,16 @@ public class SignActivity extends AppCompatActivity {
     @Bind(R.id.radiogroup)
     RadioGroup bt_group;
 
+    @Inject
+    Retrofit retrofit;
+
+    public interface RegistService {
+        @GET("addUser.php")
+        Observable<Void> regist(@Query("phone") String phone,
+                                    @Query("name") String name,
+                                    @Query("sex") String sex,
+                                    @Query("number") String number);
+    }
 
     final Intent intent=new Intent();
     private SharedPreferences hp;
@@ -81,131 +103,126 @@ public class SignActivity extends AppCompatActivity {
     private static final int MESSAGETYPE_02 = 0x0002;
     private  boolean isLogined;
 
-    private Handler handler = new Handler(){
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MESSAGETYPE_02:
-                    //添加信息到数据库当中
-                    if (progressDialog.isShowing()) {
-                        Log.d("phone",hp.getString("PHONE", "none"));
-                        EMClient.getInstance().login(hp.getString("PHONE", "none"), hp.getString("PHONE", "none"), new EMCallBack() {//回调
-                            @Override
-                            public void onSuccess() {
-                                progressDialog.dismiss();
-                                isLogined = true;
-                                EMClient.getInstance().groupManager().loadAllGroups();
-                                EMClient.getInstance().chatManager().loadAllConversations();
-                                //Toast.makeText(SignActivity.this, "注册成功", Toast.LENGTH_SHORT).show();
-                                getWindow().setExitTransition(new Explode());
-                                intent.setClass(SignActivity.this, HomeActivity.class);
-                                startActivity(intent);
-                                finish();
-                            }
-
-                            @Override
-                            public void onProgress(int progress, String status) {
-                                Log.d("progress", progress + "");
-                            }
-
-                            @Override
-                            public void onError(int code, String message) {
-                                //Toast.makeText(SignActivity.this,"登陆服务器失败",Toast.LENGTH_SHORT).show();
-                                Log.d("TAG", "登录服务器失败");
-                            }
-                        });
-                        break;
-                    }
-                }
-        }
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().requestFeature(Window.FEATURE_CONTENT_TRANSITIONS);
         setContentView(R.layout.activity_sign);
-        EMOptions options = new EMOptions();
-        //初始化
-        EMClient.getInstance().init(new MyApp(), options);
-
+        DaggerAppComponent.builder().build().inject(this);
+        setTheStateBarAndInitEM();
         hp = this.getSharedPreferences("USERINFO", MODE_PRIVATE);
         progressDialog=new ProgressDialog(SignActivity.this);
         editor = hp.edit();
-        //透明状态栏
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        //透明导航栏
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
         ButterKnife.bind(this);
 
         RxView.clicks(btn_sign).subscribe(new Action1<Void>() {
             @Override
             public void call(Void aVoid) {
-
                 boolean phoneIsRight = false;
                 boolean nameIsRight = false;
-                //
-                if(!et_id.getText().equals("") ){
-                    nameIsRight = true;
-                }else{
-                    til.setErrorEnabled(true);
-                    til.setError("请输入正确的名字");
-                }
-
-                //
-                if(nameIsRight && isMobileNO(et_phone.getText().toString())){
-                    phoneIsRight = true;
-                }else{
-                    til2.setErrorEnabled(true);
-                    til2.setError("请输入正确的手机号码");
-                }
-
-                //
-                if(phoneIsRight && isWnumber(et_wnumber.getText().toString())){
-                    int buttonId = bt_group.getCheckedRadioButtonId();
-                    String sex = "";
-                    if(buttonId == R.id.radioButton1){
-                        sex = "1";
-                    }else{
-                        sex = "0";
-                    }
-                    editor.putString("NAME",et_id.getText().toString());
-                    editor.putString("PHONE",et_phone.getText().toString());
-                    editor.putString("WNUMBER",et_wnumber.getText().toString());
-                    editor.putString("SEX",sex);
-                    editor.commit();
-                    progressDialog.setMessage("注册中");
-                    progressDialog.show();
-                    regist(et_id.getText().toString(),et_phone.getText().toString(),et_wnumber.getText().toString(),sex);
-                }else{
-                    til3.setErrorEnabled(true);
-                    til3.setError("请输入正确的工号");
-                }
+                checkTheName(nameIsRight);
+                checkThePhone(nameIsRight,phoneIsRight);
+                checkTheNumberAndRegist(phoneIsRight);
             }
         });
 
     }
 
+    private void checkTheNumberAndRegist(boolean phoneIsRight) {
+        if(phoneIsRight && isWnumber(et_wnumber.getText().toString())){
+            int buttonId = bt_group.getCheckedRadioButtonId();
+            String sex = "";
+            sex = buttonId == R.id.radioButton1?"1":"0";
+            editor.putString("NAME",et_id.getText().toString());
+            editor.putString("PHONE",et_phone.getText().toString());
+            editor.putString("WNUMBER",et_wnumber.getText().toString());
+            editor.putString("SEX",sex);
+            editor.commit();
+            progressDialog.setMessage("注册中");
+            progressDialog.show();
+            regist(et_id.getText().toString(),et_phone.getText().toString(),et_wnumber.getText().toString(),sex);
+        }else{
+            til3.setErrorEnabled(true);
+            til3.setError("请输入正确的工号");
+        }
+    }
+
+    private void checkThePhone(boolean nameIsRight, boolean phoneIsRight) {
+        if(nameIsRight && isMobileNO(et_phone.getText().toString())){
+            phoneIsRight = true;
+        }else{
+            til2.setErrorEnabled(true);
+            til2.setError("请输入正确的手机号码");
+        }
+    }
+
+    private void checkTheName(boolean nameIsRight) {
+        if(!et_id.getText().equals("") ){
+            nameIsRight = true;
+        }else{
+            til.setErrorEnabled(true);
+            til.setError("请输入正确的名字");
+        }
+    }
+
     private void regist(final String name, final String phone, final String number, final String sex) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    API.registerForHttpGet(name,phone,number,sex);
-                    try {
-                        EMClient.getInstance().createAccount(hp.getString("PHONE","none"),hp.getString("PHONE","none"));
-                    } catch (HyphenateException e) {
-                        e.printStackTrace();
-                    }
-                    Thread.sleep(2000);
-                    handler.sendEmptyMessage(MESSAGETYPE_02);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+        RegistService registService = retrofit.create(RegistService.class);
+        Subscription subscription = registService.regist(phone,name,sex,number)
+                                    .subscribeOn(Schedulers.io())
+                                    .observeOn(AndroidSchedulers.mainThread())
+                                    .subscribe(new Action1<Void>() {
+                                        @Override
+                                        public void call(Void aVoid) {
+                                            createAccountForEM();
+                                        }
+                                    });
+    }
+
+    private void createAccountForEM() {
+        try {
+            EMClient.getInstance().createAccount(hp.getString("PHONE","none"),
+                    hp.getString("PHONE","none"));
+        } catch (HyphenateException e) {
+            e.printStackTrace();
+        }
+        loginAndTurnToHome();
+    }
+
+    private void loginAndTurnToHome() {
+        if (progressDialog.isShowing()) {
+            Log.d("phone",hp.getString("PHONE", "none"));
+            EMClient.getInstance().login(hp.getString("PHONE", "none"),
+                    hp.getString("PHONE", "none"), new EMCallBack() {//回调
+                @Override
+                public void onSuccess() {
+                    closeTheDialogAndTurnToHome();
                 }
-            }
-        }).start();
+
+                @Override
+                public void onProgress(int progress, String status) {
+                    Log.d("progress", progress + "");
+                }
+
+                @Override
+                public void onError(int code, String message) {
+                    Toast.makeText(SignActivity.this,
+                            "登陆服务器失败",Toast.LENGTH_SHORT).show();
+                    Log.d("TAG", "登录服务器失败");
+                }
+            });
+        }
+    }
+
+    private void closeTheDialogAndTurnToHome() {
+        progressDialog.dismiss();
+        isLogined = true;
+        EMClient.getInstance().groupManager().loadAllGroups();
+        EMClient.getInstance().chatManager().loadAllConversations();
+        Toast.makeText(SignActivity.this, "注册成功", Toast.LENGTH_SHORT).show();
+        getWindow().setExitTransition(new Explode());
+        intent.setClass(SignActivity.this, HomeActivity.class);
+        startActivity(intent);
+        finish();
     }
 
 
@@ -219,6 +236,16 @@ public class SignActivity extends AppCompatActivity {
         String telRegex = "[1][358]\\d{9}";//"[1]"代表第1位为数字1，"[358]"代表第二位可以为3、5、8中的一个，"\\d{9}"代表后面是可以是0～9的数字，有9位。
         if (TextUtils.isEmpty(mobiles)) return false;
         else return mobiles.matches(telRegex);
+    }
+
+    private void setTheStateBarAndInitEM() {
+        //透明状态栏
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        //透明导航栏
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        //初始化EMClient
+        EMOptions options = new EMOptions();
+        EMClient.getInstance().init(new MyApp(), options);
     }
 
     public boolean isWnumber(String wnumber){

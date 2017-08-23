@@ -2,6 +2,7 @@ package com.example.mezereon.Component;
 
 import com.example.mezereon.Home.HomeActivity;
 import com.example.mezereon.Login.LoginActivity;
+import com.example.mezereon.Login.SignActivity;
 import com.example.mezereon.Module.AppModule;
 
 import javax.inject.Singleton;
@@ -17,5 +18,6 @@ import retrofit2.Retrofit;
 public interface AppComponent {
     void inject(HomeActivity homeActivity);
     void inject(LoginActivity loginActivity);
+    void inject(SignActivity signActivity);
     Retrofit retrofit();
 }

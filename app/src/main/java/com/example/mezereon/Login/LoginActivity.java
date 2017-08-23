@@ -25,6 +25,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.example.mezereon.Component.DaggerAppComponent;
 import com.example.mezereon.Home.HomeActivity;
 import com.example.mezereon.MyApp;
 import com.example.mezereon.R;
@@ -95,12 +96,12 @@ public class LoginActivity extends AppCompatActivity {
         getWindow().requestFeature(Window.FEATURE_CONTENT_TRANSITIONS);
         setContentView(R.layout.activity_login);
         progressDialog=new ProgressDialog(LoginActivity.this);
+        DaggerAppComponent.builder().build().inject(this);
         final IsRegistService isRegistService = retrofit.create(IsRegistService.class);
         hp = this.getSharedPreferences("USERINFO", MODE_PRIVATE);
         editor = hp.edit();
         ButterKnife.bind(this);
-        setTheStateBar();
-        initTheEM();
+        setTheStateBarAndInitEM();
         judgeTheLoginState();
         RxView.clicks(btn_login).subscribe(new Action1<Void>() {
             @Override
@@ -132,11 +133,14 @@ public class LoginActivity extends AppCompatActivity {
                     }});
     }
 
-    private void setTheStateBar() {
+    private void setTheStateBarAndInitEM() {
         //透明状态栏
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         //透明导航栏
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        //初始化EMClient
+        EMOptions options = new EMOptions();
+        EMClient.getInstance().init(new MyApp(), options);
     }
 
     private void judgeTheLoginState() {
@@ -147,11 +151,6 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    private void initTheEM() {
-        //初始化EMClient
-        EMOptions options = new EMOptions();
-        EMClient.getInstance().init(new MyApp(), options);
-    }
 
     private void isRegisted(String s) {
         String result = s;
